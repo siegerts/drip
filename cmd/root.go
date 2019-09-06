@@ -14,7 +14,7 @@ var rootCmd = &cobra.Command{
 your source and automatically restart your server. Perfect for development.
 Complete documentation is available at x`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
+		Watch()
 	},
 }
 

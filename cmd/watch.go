@@ -23,11 +23,12 @@ var watchCmd = &cobra.Command{
 	Short: "Watch the current directory for any changes",
 	Long:  `Watch and rebuild the source if any changes are made across subdirectorys`,
 	Run: func(cmd *cobra.Command, args []string) {
-		watch()
+		Watch()
 	},
 }
 
-func watch() {
+// Watch is the default explicit run function
+func Watch() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println("ERROR", err)
