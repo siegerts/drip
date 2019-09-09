@@ -14,7 +14,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var watchDir string
+var entryPoint string
+var subDirsToSkip []string
+
 func init() {
+	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
+	watchCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
+	watchCmd.Flags().StringSliceVarP(&subDirsToSkip, "skip", "s", []string{".Rproj.user"}, "A comma-separated list of directories to not watch.")
+
 	rootCmd.AddCommand(watchCmd)
 }
 
@@ -23,27 +31,37 @@ var watchCmd = &cobra.Command{
 	Short: "Watch the current directory for any changes",
 	Long:  `Watch and rebuild the source if any changes are made across subdirectorys`,
 	Run: func(cmd *cobra.Command, args []string) {
-		Watch()
+		if watchDir != "" {
+			if _, err := os.Stat(watchDir); os.IsNotExist(err) {
+				fmt.Println("==> Exiting: Directory does not exist")
+				os.Exit(1)
+			}
+			Watch(watchDir)
+		} else {
+			// watch current
+			Watch(".")
+		}
 	},
 }
 
 // Watch is the default explicit run function
-func Watch() {
+func Watch(dir string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println("ERROR", err)
 	}
 	defer watcher.Close()
 
-	err = filepath.Walk("/Users/siegerts/Documents/projects/feedback2", func(path string, info os.FileInfo, err error) error {
-		subDirToSkip := ".Rproj.user"
+	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 
-		if info.IsDir() && info.Name() == subDirToSkip {
-			fmt.Printf("skipping dir without errors: %+v \n", info.Name())
-			return filepath.SkipDir
-		}
-		if info.IsDir() {
-			return watcher.Add(path)
+		for _, subDir := range subDirsToSkip {
+			if info.IsDir() && info.Name() == subDir {
+				fmt.Printf("skipping dir without errors: %+v \n", info.Name())
+				return filepath.SkipDir
+			}
+			if info.IsDir() {
+				return watcher.Add(path)
+			}
 		}
 
 		return nil
@@ -51,30 +69,61 @@ func Watch() {
 	if err != nil {
 		fmt.Println("ERROR", err)
 	}
-	log.Println("watching for changes in ", "/Users/siegerts/Documents/projects/feedback2")
 
 	done := make(chan bool)
 
 	debounced := debounce.New(100 * time.Millisecond)
 
-	// this needs moved into seperate flag?
+	var pid int
 	plumb := func() {
-		// requires entrypoint
-		fmt.Println("rebuilding...")
-		plumber := fmt.Sprintf("/Users/siegerts/Documents/projects/feedback2/entrypoint.r")
-		cmd := exec.Command("Rscript", plumber)
+		// the process needs stopped if it is running
+		// if windows, then kill, not interupt
+		if pid != 0 {
+			p, err := os.FindProcess(pid)
+			if err != nil {
+				fmt.Println(err)
+			}
+			err = p.Signal(os.Interrupt)
+		}
 
-		err := cmd.Start()
+		var plumber string
+		if dir != "." {
+			plumber = fmt.Sprintf("%s/%s", dir, entryPoint)
+		} else {
+			plumber = fmt.Sprintf("%s", entryPoint)
+		}
 
-		// Execute command
-		utils.PrintCommand(cmd)
+		plumbCmd := exec.Command("Rscript", plumber)
 
-		fmt.Println("watching...")
+		// redirect child output
+		plumbCmd.Stdout = os.Stdout
+		plumbCmd.Stderr = os.Stderr
+		err := plumbCmd.Start()
+		pid = plumbCmd.Process.Pid
 
 		if err != nil {
 			fmt.Println(err)
 		}
 
+		// Execute command
+		utils.PrintCommand(plumbCmd)
+		fmt.Println("watching...")
+
+	}
+
+	// watch for used ports
+	// https://github.com/jennybc/googlesheets/issues/343#issuecomment-370202906
+	// 	lsof -i :8000
+	// COMMAND   PID     USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+	// R       38305 siegerts   27u  IPv4 0x79ee09c2f3031013      0t0  TCP localhost:irdmi (LISTEN)
+
+	// initial watch
+	fmt.Println("plumbing...")
+	plumb()
+	if dir != "." {
+		log.Println("watching for changes in ", dir)
+	} else {
+		log.Println("watching for changes in current directory")
 	}
 
 	go func() {
@@ -93,6 +142,7 @@ func Watch() {
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
 					log.Println("removed file: ", event.Name)
 				}
+				fmt.Println("re-plumbing...")
 				debounced(plumb)
 
 			case err := <-watcher.Errors:
