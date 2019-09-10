@@ -13,12 +13,10 @@ import (
 )
 
 var plumberEntryPoint string
-var routeFilter string
 
 func init() {
 	rootCmd.AddCommand(routesCmd)
 	routesCmd.Flags().StringVarP(&plumberEntryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
-	routesCmd.Flags().StringVarP(&routeFilter, "filter", "f", "", "Filter endpoints by prefix match")
 }
 
 func check(e error) {
