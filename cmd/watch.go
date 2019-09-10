@@ -17,19 +17,28 @@ import (
 var watchDir string
 var entryPoint string
 var subDirsToSkip []string
+var displayRoutes bool
+var hostValue string
+var portValue int
+var absoluteHost bool
+var routeFilter string
 
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
 	watchCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
 	watchCmd.Flags().StringSliceVarP(&subDirsToSkip, "skip", "s", []string{".Rproj.user"}, "A comma-separated list of directories to not watch.")
-
+	watchCmd.Flags().BoolVar(&displayRoutes, "routes", false, "Display route map alongside file watcher")
+	watchCmd.PersistentFlags().StringVar(&hostValue, "host", "127.0.0.1", "Display route endpoints with a specific host")
+	watchCmd.PersistentFlags().IntVar(&portValue, "port", 8000, "Display route endpoints with a specific port")
+	watchCmd.PersistentFlags().BoolVar(&absoluteHost, "showHost", false, "Display absolute route endpoint in output")
+	watchCmd.Flags().StringVarP(&routeFilter, "filter", "f", "", "Filter endpoints by prefix match")
 	rootCmd.AddCommand(watchCmd)
 }
 
 var watchCmd = &cobra.Command{
 	Use:   "watch",
 	Short: "Watch the current directory for any changes",
-	Long:  `Watch and rebuild the source if any changes are made across subdirectorys`,
+	Long:  `Watch and rebuild the source if any changes are made across subdirectories`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if watchDir != "" {
 			if _, err := os.Stat(watchDir); os.IsNotExist(err) {
@@ -78,6 +87,12 @@ func Watch(dir string) {
 	plumb := func() {
 		// the process needs stopped if it is running
 		// if windows, then kill, not interupt
+		// if runtime.GOOS == "windows" {
+		// 	err = p.Signal(os.Kill)
+		// } else {
+		// 	//
+		// }
+
 		if pid != 0 {
 			p, err := os.FindProcess(pid)
 			if err != nil {
@@ -107,6 +122,10 @@ func Watch(dir string) {
 
 		// Execute command
 		utils.PrintCommand(plumbCmd)
+		// routes
+		if displayRoutes {
+			RouteStructure(entryPoint, hostValue, portValue, absoluteHost, routeFilter)
+		}
 		fmt.Println("watching...")
 
 	}
