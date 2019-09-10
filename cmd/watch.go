@@ -106,9 +106,18 @@ func Watch(dir string) {
 		}
 
 		var plumber string
+		// refactor this into exists function
 		if dir != "." {
+			if _, err := os.Stat(fmt.Sprintf("%s/%s", dir, entryPoint)); os.IsNotExist(err) {
+				fmt.Println("==> Exiting: Entrypoint does not exist")
+				os.Exit(1)
+			}
 			plumber = fmt.Sprintf("%s/%s", dir, entryPoint)
 		} else {
+			if _, err := os.Stat(entryPoint); os.IsNotExist(err) {
+				fmt.Println("==> Exiting: Entrypoint does not exist")
+				os.Exit(1)
+			}
 			plumber = fmt.Sprintf("%s", entryPoint)
 		}
 
@@ -122,6 +131,7 @@ func Watch(dir string) {
 
 		if err != nil {
 			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		// Execute command
@@ -130,7 +140,7 @@ func Watch(dir string) {
 		if displayRoutes {
 			RouteStructure(entryPoint, hostValue, portValue, absoluteHost, routeFilter)
 		}
-		fmt.Println("watching...")
+		log.Println("watching...")
 
 	}
 
@@ -141,7 +151,7 @@ func Watch(dir string) {
 	// R       38305 siegerts   27u  IPv4 0x79ee09c2f3031013      0t0  TCP localhost:irdmi (LISTEN)
 
 	// initial watch
-	fmt.Println("plumbing...")
+	log.Println("plumbing...")
 	plumb()
 	if dir != "." {
 		log.Println("watching for changes in ", dir)
@@ -165,7 +175,7 @@ func Watch(dir string) {
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
 					log.Println("removed file: ", event.Name)
 				}
-				fmt.Println("re-plumbing...")
+				log.Println("re-plumbing...")
 				debounced(plumb)
 
 			case err := <-watcher.Errors:
