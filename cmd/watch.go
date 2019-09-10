@@ -26,7 +26,7 @@ var routeFilter string
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
 	watchCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
-	watchCmd.Flags().StringSliceVarP(&subDirsToSkip, "skip", "s", []string{".Rproj.user"}, "A comma-separated list of directories to not watch.")
+	watchCmd.Flags().StringSliceVarP(&subDirsToSkip, "skip", "s", []string{"node_modules", ".Rproj.user"}, "A comma-separated list of directories to not watch.")
 	watchCmd.Flags().BoolVar(&displayRoutes, "routes", false, "Display route map alongside file watcher")
 	watchCmd.PersistentFlags().StringVar(&hostValue, "host", "127.0.0.1", "Display route endpoints with a specific host")
 	watchCmd.PersistentFlags().IntVar(&portValue, "port", 8000, "Display route endpoints with a specific port")
@@ -62,21 +62,25 @@ func Watch(dir string) {
 	defer watcher.Close()
 
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-
+		var skip bool
 		for _, subDir := range subDirsToSkip {
-			if info.IsDir() && info.Name() == subDir {
-				fmt.Printf("skipping dir without errors: %+v \n", info.Name())
+			skip = info.IsDir() && info.Name() == subDir
+			if skip {
+				log.Printf("skipping dir without errors: %+v \n", info.Name())
 				return filepath.SkipDir
 			}
-			if info.IsDir() {
-				return watcher.Add(path)
-			}
+
 		}
 
+		if info.IsDir() {
+			return watcher.Add(path)
+		}
 		return nil
+
 	})
+
 	if err != nil {
-		fmt.Println("ERROR", err)
+		fmt.Println("Error", err)
 	}
 
 	done := make(chan bool)
