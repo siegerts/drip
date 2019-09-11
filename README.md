@@ -3,10 +3,18 @@
 `drip` is a utility that will monitor your Plumber applications for any changes in
 your source and automatically restart your server. Perfect for development.
 
+## Developing
+
 ```sh
-➜  go build -o build/drip  github.com/siegerts/drip
-➜  go install github.com/siegerts/drip
+$ git clone github.com/siegerts/drip
 ```
+
+```sh
+$ go build -o build/drip  github.com/siegerts/drip
+$ go install github.com/siegerts/drip
+```
+
+## Use
 
 ```
 drip is a utility that will monitor your Plumber applications for any changes in
@@ -63,3 +71,5 @@ Flags:
 -e, --entry string   Plumber application entrypoint file (default "entrypoint.r")
 -h, --help           help for routes
 ```
+
+### building
