@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-
 	log.SetOutput(os.Stdout)
 	cmd.Execute()
+
 }
