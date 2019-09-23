@@ -9,7 +9,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "drip",
-	Short: "Watch and reload Plumber applications during development",
+	Short: "Watch and automatically restart Plumber applications during development",
 	Long: `drip is a utility that will monitor your Plumber applications for any changes in 
 your source and automatically restart your server. Perfect for development.`,
 	Run: func(cmd *cobra.Command, args []string) {
