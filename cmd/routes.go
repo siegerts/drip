@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -65,7 +66,7 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 				check(err)
 
 				table := tablewriter.NewWriter(os.Stdout)
-				table.SetHeader([]string{"HTTP Verb", "Endpoint", "Handler"})
+				table.SetHeader([]string{"Plumber Verb", "Endpoint", "Handler"})
 				data := [][]string{}
 
 				// route table
@@ -145,7 +146,9 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 				for _, v := range data {
 					table.Append(v)
 				}
+				fmt.Println()
 				table.Render()
+				fmt.Println()
 
 				// @TODO: need to deal with mounting and static file routers
 
