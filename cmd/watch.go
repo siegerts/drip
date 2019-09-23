@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/bep/debounce"
 	"github.com/fsnotify/fsnotify"
-	"github.com/siegerts/drip/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -42,22 +41,27 @@ var watchCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if watchDir != "" {
 			if _, err := os.Stat(watchDir); os.IsNotExist(err) {
-				fmt.Println("==> Exiting: Directory does not exist")
+				fmt.Println("Exiting... Directory does not exist")
 				os.Exit(1)
 			}
 			Watch(watchDir)
 		} else {
 			// watch current
-			Watch(".")
+			cwd, _ := os.Getwd()
+			Watch(cwd)
+
 		}
 	},
 }
 
 // Watch is the default explicit run function
 func Watch(dir string) {
+
+	dirPath := filepath.Base(dir)
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		fmt.Println("ERROR", err)
+		fmt.Printf("error: %s \n", err)
 	}
 	defer watcher.Close()
 
@@ -66,7 +70,7 @@ func Watch(dir string) {
 		for _, subDir := range subDirsToSkip {
 			skip = info.IsDir() && info.Name() == subDir
 			if skip {
-				log.Printf("skipping dir without errors: %+v \n", info.Name())
+				fmt.Printf("[%s] skipping directory: %+v \n", dirPath, info.Name())
 				return filepath.SkipDir
 			}
 
@@ -80,7 +84,8 @@ func Watch(dir string) {
 	})
 
 	if err != nil {
-		fmt.Println("Error", err)
+		// change this output msg/structure
+		fmt.Printf("[%s] error skipping directories... \n", dirPath)
 	}
 
 	done := make(chan bool)
@@ -97,6 +102,11 @@ func Watch(dir string) {
 		// 	//
 		// }
 
+		// watch for used ports
+		// https://github.com/jennybc/googlesheets/issues/343#issuecomment-370202906
+		// 	lsof -i :8000
+		// COMMAND   PID     USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+		// R       38305 siegerts   27u  IPv4 0x79ee09c2f3031013      0t0  TCP localhost:irdmi (LISTEN)
 		if pid != 0 {
 			p, err := os.FindProcess(pid)
 			if err != nil {
@@ -109,13 +119,13 @@ func Watch(dir string) {
 		// refactor this into exists function
 		if dir != "." {
 			if _, err := os.Stat(fmt.Sprintf("%s/%s", dir, entryPoint)); os.IsNotExist(err) {
-				fmt.Println("==> Exiting: Entrypoint does not exist")
+				fmt.Println("Exiting... Entrypoint does not exist")
 				os.Exit(1)
 			}
 			plumber = fmt.Sprintf("%s/%s", dir, entryPoint)
 		} else {
 			if _, err := os.Stat(entryPoint); os.IsNotExist(err) {
-				fmt.Println("==> Exiting: Entrypoint does not exist")
+				fmt.Println("Exiting... Entrypoint does not exist")
 				os.Exit(1)
 			}
 			plumber = fmt.Sprintf("%s", entryPoint)
@@ -130,34 +140,25 @@ func Watch(dir string) {
 		pid = plumbCmd.Process.Pid
 
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Exiting... Error catching process id")
 			os.Exit(1)
 		}
 
 		// Execute command
-		utils.PrintCommand(plumbCmd)
+		fmt.Printf("[%s] running: %s \n", dirPath, strings.Join(plumbCmd.Args, " "))
+
 		// routes
 		if displayRoutes {
+			fmt.Printf("[%s] Routing structure... \n", dirPath)
 			RouteStructure(entryPoint, hostValue, portValue, absoluteHost, routeFilter)
 		}
-		log.Println("watching...")
+		fmt.Printf("[%s] watching... \n", dirPath)
 
 	}
-
-	// watch for used ports
-	// https://github.com/jennybc/googlesheets/issues/343#issuecomment-370202906
-	// 	lsof -i :8000
-	// COMMAND   PID     USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
-	// R       38305 siegerts   27u  IPv4 0x79ee09c2f3031013      0t0  TCP localhost:irdmi (LISTEN)
 
 	// initial watch
-	log.Println("plumbing...")
+	fmt.Printf("[%s] plumbing... \n", dirPath)
 	plumb()
-	if dir != "." {
-		log.Println("watching for changes in ", dir)
-	} else {
-		log.Println("watching for changes in current directory")
-	}
 
 	go func() {
 		for {
@@ -167,21 +168,22 @@ func Watch(dir string) {
 					continue
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file: ", event.Name)
+					fmt.Printf("[%s] modified file: %s\n", dirPath, event.Name)
 				}
 				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					log.Println("renamed file: ", event.Name)
+					fmt.Printf("[%s] renamed file: %s\n", dirPath, event.Name)
 				}
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					log.Println("removed file: ", event.Name)
+					fmt.Printf("[%s] removed file: %s\n", dirPath, event.Name)
 				}
-				log.Println("re-plumbing...")
+				fmt.Printf("[%s] plumbing... \n", dirPath)
 				debounced(plumb)
 
 			case err := <-watcher.Errors:
-				fmt.Println("error: ", err)
+				fmt.Printf("[%s] error: %s\n", dirPath, err)
 
 			case <-done:
+				fmt.Printf("done.\n")
 				break
 			}
 

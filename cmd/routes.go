@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -36,7 +37,19 @@ var routesCmd = &cobra.Command{
 
 // RouteStructure outputs the parsed endpoints for a given entrypoint file
 func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHost bool, routeFilter string) {
-	// gen route structure
+
+	var dirPath string
+
+	if watchDir != "" {
+		dirPath = filepath.Base(watchDir)
+	} else {
+		// watch current
+		cwd, _ := os.Getwd()
+		dirPath = filepath.Base(cwd)
+
+	}
+
+	// gen route structure, maybe write a lexer in the future
 	plumb, _ := regexp.Compile(`(?i)(?P<comment>#*).*plumb\("(?P<plumber>[a-zA-Z0-9_]+\.[rR])"\)`)
 
 	routes, _ := regexp.Compile(`(?i)#\*\s*@(get|post|put|delete|head)\s/[a-zA-Z0-9\-_\/<>:]+`)
@@ -65,9 +78,10 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 				check(err)
 
 				w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+
 				// route table
 				// refactor into function
-				fmt.Println("Routes")
+				fmt.Printf("[%s] Routes: \n\n", dirPath)
 				routeMatches := routes.FindAllStringSubmatch(string(dat), -1)
 				for _, match := range routeMatches {
 					s := strings.TrimPrefix(match[0], "#*")
@@ -120,7 +134,7 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 
 				w.Flush()
 
-				fmt.Println("Static Assets")
+				fmt.Printf("[%s] Static Assets: \n\n", dirPath)
 				// static asset table
 				assetMatches := assets.FindAllStringSubmatch(string(dat), -1)
 				for _, match := range assetMatches {
