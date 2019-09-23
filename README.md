@@ -1,9 +1,24 @@
-# drip
+# Overview
 
 `drip` is a utility that will monitor your Plumber applications for any changes in
-your source and automatically restart your server. Perfect for development.
+your source and automatically restart your server.
+
+> This project is under development and subject to change. All feedback and issues are welcome. 🍻
+
+The key features of drip are:
+
+- Automatic restarting of Plumber applications on file changes.
+- Distributed as a single binary. Install drip by unzipping it and moving it to a directory included in your system's PATH.
+- Ignore specific directories.
+- Generation of routing maps
 
 ## Developing
+
+If you want to work on drip, you'll first need [Go](https://golang.org/) installed on your machine.
+
+For local development, first make sure Go is properly installed and that a GOPATH has been set. You will also need to add $GOPATH/bin to your $PATH.
+
+Next, using Git, clone this repository into \$GOPATH/src/github.com/siegerts/drip.
 
 ```sh
 $ git clone github.com/siegerts/drip
@@ -19,7 +34,6 @@ $ go install github.com/siegerts/drip
 ```
 drip is a utility that will monitor your Plumber applications for any changes in
 your source and automatically restart your server. Perfect for development.
-Complete documentation is available at x
 
 Usage:
   drip [flags]
@@ -71,5 +85,3 @@ Flags:
 -e, --entry string   Plumber application entrypoint file (default "entrypoint.r")
 -h, --help           help for routes
 ```
-
-### building
