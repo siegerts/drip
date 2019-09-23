@@ -27,8 +27,8 @@ func check(e error) {
 
 var routesCmd = &cobra.Command{
 	Use:   "routes",
-	Short: "Display all routes in your Plumber application",
-	Long:  `A quick way to visualize your application's routing structure`,
+	Short: "Display routes in your Plumber application",
+	Long:  `A quick way to visualize your Plumber application's routing structure`,
 	Run: func(cmd *cobra.Command, args []string) {
 		RouteStructure(plumberEntryPoint, hostValue, portValue, absoluteHost, routeFilter)
 	},
