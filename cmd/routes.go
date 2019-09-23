@@ -1,15 +1,13 @@
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -37,17 +35,6 @@ var routesCmd = &cobra.Command{
 
 // RouteStructure outputs the parsed endpoints for a given entrypoint file
 func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHost bool, routeFilter string) {
-
-	var dirPath string
-
-	if watchDir != "" {
-		dirPath = filepath.Base(watchDir)
-	} else {
-		// watch current
-		cwd, _ := os.Getwd()
-		dirPath = filepath.Base(cwd)
-
-	}
 
 	// gen route structure, maybe write a lexer in the future
 	plumb, _ := regexp.Compile(`(?i)(?P<comment>#*).*plumb\("(?P<plumber>[a-zA-Z0-9_]+\.[rR])"\)`)
@@ -77,11 +64,12 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 				dat, err := ioutil.ReadFile(entry[2])
 				check(err)
 
-				w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+				table := tablewriter.NewWriter(os.Stdout)
+				table.SetHeader([]string{"HTTP Verb", "Endpoint", "Handler"})
+				data := [][]string{}
 
 				// route table
 				// refactor into function
-				fmt.Printf("[%s] Routes: \n\n", dirPath)
 				routeMatches := routes.FindAllStringSubmatch(string(dat), -1)
 				for _, match := range routeMatches {
 					s := strings.TrimPrefix(match[0], "#*")
@@ -104,9 +92,10 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 								endpoint = parts[2]
 							}
 
-							fmt.Fprintln(w, strings.ToUpper(parts[1])+"\t"+endpoint)
+							data = append(data, []string{parts[1], endpoint, "function"})
+
 						} else {
-							fmt.Fprintln(w, strings.Join(parts, "\t"))
+							data = append(data, []string{parts[1], parts[2], "function"})
 						}
 					}
 
@@ -125,16 +114,14 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 							endpoint = parts[2]
 						}
 
-						fmt.Fprintln(w, strings.ToUpper(parts[1])+"\t"+endpoint)
+						data = append(data, []string{parts[1], endpoint, "function"})
+
 					} else {
-						fmt.Fprintln(w, strings.Join(parts, "\t"))
+						data = append(data, []string{parts[1], parts[2], "function"})
 					}
 
 				}
 
-				w.Flush()
-
-				fmt.Printf("[%s] Static Assets: \n\n", dirPath)
 				// static asset table
 				assetMatches := assets.FindAllStringSubmatch(string(dat), -1)
 				for _, match := range assetMatches {
@@ -149,12 +136,16 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 							endpoint = parts[2]
 						}
 
-						fmt.Fprintln(w, strings.ToUpper(parts[1])+"\t"+endpoint)
+						data = append(data, []string{parts[1], endpoint, "static assets"})
+
 					} else {
-						fmt.Fprintln(w, strings.Join(parts, "\t"))
+						data = append(data, []string{parts[1], parts[2], "static assets"})
 					}
 				}
-				w.Flush()
+				for _, v := range data {
+					table.Append(v)
+				}
+				table.Render()
 
 				// @TODO: need to deal with mounting and static file routers
 

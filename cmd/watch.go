@@ -149,7 +149,7 @@ func Watch(dir string) {
 
 		// routes
 		if displayRoutes {
-			fmt.Printf("[%s] Routing structure... \n", dirPath)
+			fmt.Printf("[%s] routing... \n", dirPath)
 			RouteStructure(entryPoint, hostValue, portValue, absoluteHost, routeFilter)
 		}
 		fmt.Printf("[%s] watching... \n", dirPath)
