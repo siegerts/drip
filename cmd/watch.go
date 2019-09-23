@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ var watchCmd = &cobra.Command{
 	Short: "Watch the current directory for any changes",
 	Long:  `Watch and rebuild the source if any changes are made across subdirectories`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		if watchDir != "" {
 			if _, err := os.Stat(watchDir); os.IsNotExist(err) {
 				fmt.Println("Exiting... Directory does not exist")
@@ -96,11 +98,6 @@ func Watch(dir string) {
 	plumb := func() {
 		// the process needs stopped if it is running
 		// if windows, then kill, not interupt
-		// if runtime.GOOS == "windows" {
-		// 	err = p.Signal(os.Kill)
-		// } else {
-		// 	//
-		// }
 
 		// watch for used ports
 		// https://github.com/jennybc/googlesheets/issues/343#issuecomment-370202906
@@ -112,7 +109,12 @@ func Watch(dir string) {
 			if err != nil {
 				fmt.Println(err)
 			}
-			err = p.Signal(os.Interrupt)
+			if runtime.GOOS == "windows" {
+				err = p.Signal(os.Kill)
+			} else {
+				err = p.Signal(os.Interrupt)
+			}
+
 		}
 
 		var plumber string
