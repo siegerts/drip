@@ -19,12 +19,6 @@ func init() {
 	routesCmd.Flags().StringVarP(&plumberEntryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
 }
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 var routesCmd = &cobra.Command{
 	Use:   "routes",
 	Short: "Display routes in your Plumber application",
@@ -49,13 +43,13 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 	// mountedAssets, _ := regexp.Compile(`#\* @assets\s[\.\/a-zA-Z0-9\_]+\s[\.\/a-zA-Z0-9\_]*`)
 
 	dat, err := ioutil.ReadFile(plumberEntryPoint)
-	check(err)
+	if err != nil {
+		fmt.Println("Exiting... Error reading entrypoint file: ", err)
+		os.Exit(1)
+	}
 
-	// if length > 0 then try to read the routes file
-	// figure out nests and mounts
 	entryMatches := plumb.FindAllStringSubmatch(string(dat), -1)
-	// index remains the same if no match
-	// loop through entry matches
+
 	if len(entryMatches) > 0 {
 		for _, entry := range entryMatches {
 
@@ -63,7 +57,10 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 			if comment != "#" {
 
 				dat, err := ioutil.ReadFile(entry[2])
-				check(err)
+				if err != nil {
+					fmt.Println("Exiting... Error reading plumber file: ", err)
+					os.Exit(1)
+				}
 
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetHeader([]string{"Plumber Verb", "Endpoint", "Handler"})
@@ -88,6 +85,7 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 						if absoluteHost {
 							var endpoint string
 							if host != "" {
+
 								endpoint = strings.TrimRight(host, "/") + ":" + strconv.Itoa(port) + parts[2]
 							} else {
 								endpoint = parts[2]

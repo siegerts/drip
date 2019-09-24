@@ -14,14 +14,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var watchDir string
-var entryPoint string
-var subDirsToSkip []string
-var displayRoutes bool
-var hostValue string
-var portValue int
-var absoluteHost bool
-var routeFilter string
+var (
+	watchDir      string
+	entryPoint    string
+	subDirsToSkip []string
+	displayRoutes bool
+	hostValue     string
+	portValue     int
+	absoluteHost  bool
+	routeFilter   string
+)
 
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
@@ -50,6 +52,10 @@ var watchCmd = &cobra.Command{
 		} else {
 			// watch current
 			cwd, _ := os.Getwd()
+			if _, err := os.Stat(cwd); os.IsNotExist(err) {
+				fmt.Println("Exiting... Error accessing current directory")
+				os.Exit(1)
+			}
 			Watch(cwd)
 
 		}
@@ -86,8 +92,7 @@ func Watch(dir string) {
 	})
 
 	if err != nil {
-		// change this output msg/structure
-		fmt.Printf("[%s] error skipping directories... \n", dirPath)
+		fmt.Printf("[%s] error traversing directory... \n", dirPath)
 	}
 
 	done := make(chan bool)
@@ -96,14 +101,7 @@ func Watch(dir string) {
 
 	var pid int
 	plumb := func() {
-		// the process needs stopped if it is running
-		// if windows, then kill, not interupt
 
-		// watch for used ports
-		// https://github.com/jennybc/googlesheets/issues/343#issuecomment-370202906
-		// 	lsof -i :8000
-		// COMMAND   PID     USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
-		// R       38305 siegerts   27u  IPv4 0x79ee09c2f3031013      0t0  TCP localhost:irdmi (LISTEN)
 		if pid != 0 {
 			p, err := os.FindProcess(pid)
 			if err != nil {
@@ -146,10 +144,8 @@ func Watch(dir string) {
 			os.Exit(1)
 		}
 
-		// Execute command
 		fmt.Printf("[%s] running: %s \n", dirPath, strings.Join(plumbCmd.Args, " "))
 
-		// routes
 		if displayRoutes {
 			fmt.Printf("[%s] routing... \n", dirPath)
 			RouteStructure(entryPoint, hostValue, portValue, absoluteHost, routeFilter)

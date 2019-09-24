@@ -11,7 +11,7 @@ The key features of drip are:
 - Ignore specific directories
 - Generate route maps
 
-## Plumber Application Structure
+# Plumber Application Structure
 
 drip requires that the Plumber application structure make use of an `entrypoint.R` that references a `plumber.R` app.
 
@@ -29,14 +29,14 @@ pr <- plumb("plumber.R")
 pr$run("0.0.0.0",port=8000)
 ```
 
-## Use
+# Use
 
-### Command: drip
+## Command: drip
 
 drip is a utility that will monitor your Plumber applications for any changes in
 your source and automatically restart your server.
 
-#### Usage
+### Usage
 
 - `drip [flags]`
 - `drip [command]`
@@ -52,11 +52,11 @@ Flags:
 
 - `-h`, `--help` help for drip
 
-### Command: watch
+## Command: watch
 
 Watch and rebuild the source if any changes are made across subdirectories
 
-#### Usage
+### Usage
 
 Usage: `drip watch [flags]`
 
@@ -72,17 +72,17 @@ The list of available flags are:
 - `--showHost` Display absolute route endpoint in output
 - `-s`, `--skip` (_strings_) A comma-separated list of directories to not watch. (default [node_modules,.Rproj.user])
 
-#### Examples
+### Examples
 
 ```sh
-drip watch  --routes --showHost --host http://test.com/ --port 5464 -f sum
+drip watch  --routes --showHost --host http://example.com/ --port 5464 -f sum
 ```
 
-### Command: routes
+## Command: routes
 
 A quick way to visualize your application's routing structure
 
-#### Usage
+### Usage
 
 Usage: `drip routes [flags]`
 
@@ -90,13 +90,13 @@ Usage: `drip routes [flags]`
 - `-h`, `--help` help for routes
 - All available flags for `drip watch`
 
-#### Examples
+### Examples
 
 ```sh
-drip watch --routes --showHost --host http://test.com/ --port 5464
+drip watch --routes --showHost --host http://example.com/ --port 5464
 ```
 
-## Developing
+# Developing
 
 If you want to work on drip, you'll first need [Go](https://golang.org/) installed on your machine.
 
