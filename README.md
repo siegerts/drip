@@ -96,6 +96,16 @@ Usage: `drip routes [flags]`
 drip watch --routes --showHost --host http://example.com/ --port 5464
 ```
 
+## Command: completion
+
+Generate `bash` completion commands for drip
+
+### Usage
+
+Usage: `drip completion [flags]`
+
+- `-h`, `--help` help for completion
+
 # Developing
 
 If you want to work on drip, you'll first need [Go](https://golang.org/) installed on your machine.
