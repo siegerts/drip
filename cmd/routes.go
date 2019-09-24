@@ -24,12 +24,25 @@ var routesCmd = &cobra.Command{
 	Short: "Display routes in your Plumber application",
 	Long:  `A quick way to visualize your Plumber application's routing structure`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RouteStructure(plumberEntryPoint, hostValue, portValue, absoluteHost, routeFilter)
+		app := Application{
+			dir:           watchDir,
+			entryPoint:    entryPoint,
+			skipDirs:      subDirsToSkip,
+			displayRoutes: displayRoutes,
+			host:          hostValue,
+			port:          portValue,
+			absoluteHost:  absoluteHost,
+			routeFilter:   routeFilter,
+			// tunnelPort:    tunnelPort,
+			pid: 0,
+		}
+		app.RouteStructure()
 	},
 }
 
 // RouteStructure outputs the parsed endpoints for a given entrypoint file
-func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHost bool, routeFilter string) {
+// func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHost bool, routeFilter string) {
+func (app *Application) RouteStructure() {
 
 	// gen route structure, maybe write a lexer in the future
 	plumb, _ := regexp.Compile(`(?i)(?P<comment>#*).*plumb\("(?P<plumber>[a-zA-Z0-9_]+\.[rR])"\)`)
@@ -39,10 +52,8 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 
 	// other components
 	programmaticRoutes, _ := regexp.Compile(`(?i)\$handle\(\"(get|post|put|delete|head)\",\s*\"\/(?P<route>[a-zA-Z0-9_]+)\"`)
-	// mountedRoutes, _ := regexp.Compile(`#\* @(get|post|put|delete|head)\s/[a-zA-Z0-9\-_\/<>:]+`)
-	// mountedAssets, _ := regexp.Compile(`#\* @assets\s[\.\/a-zA-Z0-9\_]+\s[\.\/a-zA-Z0-9\_]*`)
 
-	dat, err := ioutil.ReadFile(plumberEntryPoint)
+	dat, err := ioutil.ReadFile(app.entryPoint)
 	if err != nil {
 		fmt.Println("Exiting... Error reading entrypoint file: ", err)
 		os.Exit(1)
@@ -84,9 +95,9 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 					if printRoute {
 						if absoluteHost {
 							var endpoint string
-							if host != "" {
+							if app.host != "" {
 
-								endpoint = strings.TrimRight(host, "/") + ":" + strconv.Itoa(port) + parts[2]
+								endpoint = strings.TrimRight(app.host, "/") + ":" + strconv.Itoa(app.port) + parts[2]
 							} else {
 								endpoint = parts[2]
 							}
@@ -107,8 +118,8 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 					parts := strings.Split(strings.Replace(s, "\"", "", -1), ",")
 					if absoluteHost {
 						var endpoint string
-						if host != "" {
-							endpoint = strings.TrimRight(host, "/") + ":" + strconv.Itoa(port) + parts[2]
+						if app.host != "" {
+							endpoint = strings.TrimRight(app.host, "/") + ":" + strconv.Itoa(app.port) + parts[2]
 						} else {
 							endpoint = parts[2]
 						}
@@ -129,8 +140,8 @@ func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHos
 
 					if absoluteHost {
 						var endpoint string
-						if host != "" {
-							endpoint = strings.TrimRight(host, "/") + ":" + strconv.Itoa(port) + strings.TrimLeft(parts[2], ".")
+						if app.host != "" {
+							endpoint = strings.TrimRight(app.host, "/") + ":" + strconv.Itoa(app.port) + strings.TrimLeft(parts[2], ".")
 						} else {
 							endpoint = parts[2]
 						}

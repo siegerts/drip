@@ -23,7 +23,30 @@ var (
 	portValue     int
 	absoluteHost  bool
 	routeFilter   string
+	tunnelPort    int
 )
+
+// Application is the definition of a Plumber app
+// for the purposes of development and testing
+type Application struct {
+	dir           string
+	entryPoint    string
+	skipDirs      []string
+	displayRoutes bool
+	host          string
+	port          int
+	absoluteHost  bool
+	routeFilter   string
+	// tunnelPort    int
+	pid     int
+	watcher *fsnotify.Watcher
+}
+
+func (app *Application) path() string {
+	return filepath.Base(app.dir)
+}
+
+// var applications []Application
 
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
@@ -43,67 +66,79 @@ var watchCmd = &cobra.Command{
 	Long:  `Watch and rebuild the source if any changes are made across subdirectories`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if watchDir != "" {
-			if _, err := os.Stat(watchDir); os.IsNotExist(err) {
+		app := Application{
+			dir:           watchDir,
+			entryPoint:    entryPoint,
+			skipDirs:      subDirsToSkip,
+			displayRoutes: displayRoutes,
+			host:          hostValue,
+			port:          portValue,
+			absoluteHost:  absoluteHost,
+			routeFilter:   routeFilter,
+			// tunnelPort:    tunnelPort,
+			pid: 0,
+		}
+
+		if app.dir != "" {
+			if _, err := os.Stat(app.dir); os.IsNotExist(err) {
 				fmt.Println("Exiting... Directory does not exist")
 				os.Exit(1)
 			}
-			Watch(watchDir)
+			app.Watch()
 		} else {
 			// watch current
 			cwd, _ := os.Getwd()
-			if _, err := os.Stat(cwd); os.IsNotExist(err) {
+			app.dir = cwd
+			if _, err := os.Stat(app.dir); os.IsNotExist(err) {
 				fmt.Println("Exiting... Error accessing current directory")
 				os.Exit(1)
 			}
-			Watch(cwd)
+			app.Watch()
 
 		}
 	},
 }
 
 // Watch is the default explicit run function
-func Watch(dir string) {
-
-	dirPath := filepath.Base(dir)
+func (app *Application) Watch() {
 
 	watcher, err := fsnotify.NewWatcher()
+	app.watcher = watcher
 	if err != nil {
 		fmt.Printf("error: %s \n", err)
 	}
-	defer watcher.Close()
+	defer app.watcher.Close()
 
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(app.dir, func(path string, info os.FileInfo, err error) error {
 		var skip bool
-		for _, subDir := range subDirsToSkip {
+		for _, subDir := range app.skipDirs {
 			skip = info.IsDir() && info.Name() == subDir
 			if skip {
-				fmt.Printf("[%s] skipping directory: %+v \n", dirPath, info.Name())
+				fmt.Printf("[%s] skipping directory: %+v \n", app.path(), info.Name())
 				return filepath.SkipDir
 			}
 
 		}
 
 		if info.IsDir() {
-			return watcher.Add(path)
+			return app.watcher.Add(path)
 		}
 		return nil
 
 	})
 
 	if err != nil {
-		fmt.Printf("[%s] error traversing directory... \n", dirPath)
+		fmt.Printf("[%s] error traversing directory... \n", app.path())
 	}
 
 	done := make(chan bool)
 
 	debounced := debounce.New(100 * time.Millisecond)
 
-	var pid int
 	plumb := func() {
 
-		if pid != 0 {
-			p, err := os.FindProcess(pid)
+		if app.pid != 0 {
+			p, err := os.FindProcess(app.pid)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -117,18 +152,18 @@ func Watch(dir string) {
 
 		var plumber string
 		// refactor this into exists function
-		if dir != "." {
-			if _, err := os.Stat(fmt.Sprintf("%s/%s", dir, entryPoint)); os.IsNotExist(err) {
+		if app.dir != "." {
+			if _, err := os.Stat(fmt.Sprintf("%s/%s", app.dir, app.entryPoint)); os.IsNotExist(err) {
 				fmt.Println("Exiting... Entrypoint does not exist")
 				os.Exit(1)
 			}
-			plumber = fmt.Sprintf("%s/%s", dir, entryPoint)
+			plumber = fmt.Sprintf("%s/%s", app.dir, app.entryPoint)
 		} else {
-			if _, err := os.Stat(entryPoint); os.IsNotExist(err) {
+			if _, err := os.Stat(app.entryPoint); os.IsNotExist(err) {
 				fmt.Println("Exiting... Entrypoint does not exist")
 				os.Exit(1)
 			}
-			plumber = fmt.Sprintf("%s", entryPoint)
+			plumber = fmt.Sprintf("%s", app.entryPoint)
 		}
 
 		plumbCmd := exec.Command("Rscript", plumber)
@@ -137,25 +172,25 @@ func Watch(dir string) {
 		plumbCmd.Stdout = os.Stdout
 		plumbCmd.Stderr = os.Stderr
 		err := plumbCmd.Start()
-		pid = plumbCmd.Process.Pid
+		app.pid = plumbCmd.Process.Pid
 
 		if err != nil {
 			fmt.Println("Exiting... Error catching process id")
 			os.Exit(1)
 		}
 
-		fmt.Printf("[%s] running: %s \n", dirPath, strings.Join(plumbCmd.Args, " "))
+		fmt.Printf("[%s] running: %s \n", app.path(), strings.Join(plumbCmd.Args, " "))
 
 		if displayRoutes {
-			fmt.Printf("[%s] routing... \n", dirPath)
-			RouteStructure(entryPoint, hostValue, portValue, absoluteHost, routeFilter)
+			fmt.Printf("[%s] routing... \n", app.path())
+			app.RouteStructure()
 		}
-		fmt.Printf("[%s] watching... \n", dirPath)
+		fmt.Printf("[%s] watching... \n", app.path())
 
 	}
 
 	// initial watch
-	fmt.Printf("[%s] plumbing... \n", dirPath)
+	fmt.Printf("[%s] plumbing... \n", app.path())
 	plumb()
 
 	go func() {
@@ -166,19 +201,19 @@ func Watch(dir string) {
 					continue
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					fmt.Printf("[%s] modified file: %s\n", dirPath, event.Name)
+					fmt.Printf("[%s] modified file: %s\n", app.path(), event.Name)
 				}
 				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					fmt.Printf("[%s] renamed file: %s\n", dirPath, event.Name)
+					fmt.Printf("[%s] renamed file: %s\n", app.path(), event.Name)
 				}
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					fmt.Printf("[%s] removed file: %s\n", dirPath, event.Name)
+					fmt.Printf("[%s] removed file: %s\n", app.path(), event.Name)
 				}
-				fmt.Printf("[%s] plumbing... \n", dirPath)
+				fmt.Printf("[%s] plumbing... \n", app.path())
 				debounced(plumb)
 
 			case err := <-watcher.Errors:
-				fmt.Printf("[%s] error: %s\n", dirPath, err)
+				fmt.Printf("[%s] error: %s\n", app.path(), err)
 
 			case <-done:
 				fmt.Printf("done.\n")

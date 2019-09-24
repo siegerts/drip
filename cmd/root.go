@@ -13,9 +13,23 @@ var rootCmd = &cobra.Command{
 	Long: `drip is a utility that will monitor your Plumber applications for any changes in 
 your source and automatically restart your server. Perfect for development.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		app := Application{
+			dir:           watchDir,
+			entryPoint:    entryPoint,
+			skipDirs:      subDirsToSkip,
+			displayRoutes: displayRoutes,
+			host:          hostValue,
+			port:          portValue,
+			absoluteHost:  absoluteHost,
+			routeFilter:   routeFilter,
+			// tunnelPort:    tunnelPort,
+			pid: 0,
+		}
 		// watch current
+
 		cwd, _ := os.Getwd()
-		Watch(cwd)
+		app.dir = cwd
+		app.Watch()
 	},
 }
 
