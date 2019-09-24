@@ -22,11 +22,11 @@ your source and automatically restart your server. Perfect for development.`,
 			port:          portValue,
 			absoluteHost:  absoluteHost,
 			routeFilter:   routeFilter,
-			// tunnelPort:    tunnelPort,
+
 			pid: 0,
 		}
-		// watch current
 
+		// watch current
 		cwd, _ := os.Getwd()
 		app.dir = cwd
 		app.Watch()

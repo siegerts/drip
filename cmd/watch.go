@@ -23,7 +23,6 @@ var (
 	portValue     int
 	absoluteHost  bool
 	routeFilter   string
-	tunnelPort    int
 )
 
 // Application is the definition of a Plumber app
@@ -37,16 +36,13 @@ type Application struct {
 	port          int
 	absoluteHost  bool
 	routeFilter   string
-	// tunnelPort    int
-	pid     int
-	watcher *fsnotify.Watcher
+	pid           int
+	watcher       *fsnotify.Watcher
 }
 
 func (app *Application) path() string {
 	return filepath.Base(app.dir)
 }
-
-// var applications []Application
 
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
@@ -75,8 +71,7 @@ var watchCmd = &cobra.Command{
 			port:          portValue,
 			absoluteHost:  absoluteHost,
 			routeFilter:   routeFilter,
-			// tunnelPort:    tunnelPort,
-			pid: 0,
+			pid:           0,
 		}
 
 		if app.dir != "" {
@@ -152,7 +147,7 @@ func (app *Application) Watch() {
 
 		var plumber string
 		// refactor this into exists function
-		if app.dir != "." {
+		if app.dir != "" {
 			if _, err := os.Stat(fmt.Sprintf("%s/%s", app.dir, app.entryPoint)); os.IsNotExist(err) {
 				fmt.Println("Exiting... Entrypoint does not exist")
 				os.Exit(1)

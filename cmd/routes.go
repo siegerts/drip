@@ -16,7 +16,7 @@ var plumberEntryPoint string
 
 func init() {
 	rootCmd.AddCommand(routesCmd)
-	routesCmd.Flags().StringVarP(&plumberEntryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
+	routesCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
 }
 
 var routesCmd = &cobra.Command{
@@ -33,15 +33,14 @@ var routesCmd = &cobra.Command{
 			port:          portValue,
 			absoluteHost:  absoluteHost,
 			routeFilter:   routeFilter,
-			// tunnelPort:    tunnelPort,
-			pid: 0,
+			pid:           0,
 		}
 		app.RouteStructure()
 	},
 }
 
 // RouteStructure outputs the parsed endpoints for a given entrypoint file
-// func RouteStructure(plumberEntryPoint string, host string, port int, absoluteHost bool, routeFilter string) {
+// @TODO: need to deal with mounting and static file routers
 func (app *Application) RouteStructure() {
 
 	// gen route structure, maybe write a lexer in the future
@@ -158,9 +157,6 @@ func (app *Application) RouteStructure() {
 				fmt.Println()
 				table.Render()
 				fmt.Println()
-
-				// @TODO: need to deal with mounting and static file routers
-
 			}
 		}
 	}
