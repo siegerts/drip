@@ -35,8 +35,7 @@ pr$run("0.0.0.0", port=8000)
 
 ## Command: drip
 
-drip is a utility that will monitor your Plumber applications for any changes in
-your source and automatically restart your server.
+Watch the current directory for changes using default option flag parameters.
 
 ### Usage
 
