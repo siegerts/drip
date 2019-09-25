@@ -1,6 +1,6 @@
 # Overview
 
-`drip` is a utility that will monitor your [Plumber](https://www.rplumber.io) applications for any changes in your source and automatically restart your server.
+`drip` is an easy-to-use development utility that will monitor your [Plumber](https://www.rplumber.io) applications for any changes in your source and automatically restart your server.
 
 > This project is under development and subject to change. All feedback and issues are welcome. 🍻
 
@@ -9,24 +9,26 @@ The key features of drip are:
 - Automatic restarting of Plumber applications on file changes 🚀
 - Distributed as a single binary. Install drip by unzipping it and moving it to a directory included in your system's PATH
 - Ignore specific directories
-- Generate route maps
+- Generate and watch route maps
 
 # Plumber Application Structure
 
 drip requires that the Plumber application structure make use of an `entrypoint.R` that references a `plumber.R` app.
 
 ```r
+# entrypoint.r
+
 plumber::plumb("plumber.R")$run("0.0.0.0", port=8000)
 ```
 
 ```r
-# Packages ----
+# entrypoint.r
+
 library(plumber)
 
-# Plumb API ----
 pr <- plumb("plumber.R")
 
-pr$run("0.0.0.0",port=8000)
+pr$run("0.0.0.0", port=8000)
 ```
 
 # Use
@@ -52,6 +54,28 @@ Flags:
 
 - `-h`, `--help` help for drip
 
+### Example
+
+```sh
+# cd into project
+$ drip
+
+[project-dir] skipping directory: .Rproj.user
+[project-dir] skipping directory: node_modules
+[project-dir] plumbing...
+[project-dir] running: Rscript /project-dir/entrypoint.r
+[project-dir] watching...
+Starting server to listen on port 8000
+
+[project-dir] modified file: /project-dir/plumber.R
+[project-dir] plumbing...
+[project-dir] running: Rscript /project-dir/entrypoint.r
+[project-dir] watching...
+
+Starting server to listen on port 8000
+
+```
+
 ## Command: watch
 
 Watch and rebuild the source if any changes are made across subdirectories
@@ -75,12 +99,61 @@ The list of available flags are:
 ### Examples
 
 ```sh
-drip watch  --routes --showHost --host http://example.com/ --port 5464 -f sum
+# cd into project
+$ drip watch  --routes
+
+[project-dir] skipping directory: .Rproj.user
+[project-dir] skipping directory: node_modules
+[project-dir] plumbing...
+[project-dir] running: Rscript /project-dir/entrypoint.r
+[project-dir] routing...
+
++--------------+----------------------------+---------------+
+| PLUMBER VERB |          ENDPOINT          |    HANDLER    |
++--------------+----------------------------+---------------+
+| @get         | /echo                      | function      |
+| @get         | /dynamic/<param1>/<param2> | function      |
+| @get         | /two                       | function      |
+| @get         | /plot                      | function      |
+| @post        | /sum                       | function      |
+| @get         | /req                       | function      |
+| @assets      | ./files/static             | static assets |
++--------------+----------------------------+---------------+
+
+[project-dir] watching...
+Starting server to listen on port 8000
+```
+
+Or, display routes with an absolute URI and port.
+
+```sh
+# cd into project
+$ drip watch --routes --showHost --host http://localhost
+
+[project-dir] skipping directory: .Rproj.user
+[project-dir] skipping directory: node_modules
+[project-dir] plumbing...
+[project-dir] running: Rscript /project-dir/entrypoint.r
+[project-dir] routing...
+
++--------------+-------------------------------------------------+---------------+
+| PLUMBER VERB |                    ENDPOINT                     |    HANDLER    |
++--------------+-------------------------------------------------+---------------+
+| @get         | http://localhost:8000/echo                      | function      |
+| @get         | http://localhost:8000/dynamic/<param1>/<param2> | function      |
+| @get         | http://localhost:8000/plot                      | function      |
+| @post        | http://localhost:8000/sum                       | function      |
+| @get         | http://localhost:8000/req                       | function      |
+| @assets      | http://localhost:8000/files/static              | static assets |
++--------------+-------------------------------------------------+---------------+
+
+[project-dir] watching...
+Starting server to listen on port 8000
 ```
 
 ## Command: routes
 
-A quick way to visualize your application's routing structure
+A quick way to visualize your application's routing structure without starting the watcher
 
 ### Usage
 
@@ -88,12 +161,11 @@ Usage: `drip routes [flags]`
 
 - `-e`, `--entry` (_string_) Plumber application entrypoint file (default "entrypoint.r")
 - `-h`, `--help` help for routes
-- All available flags for `drip watch`
 
 ### Examples
 
 ```sh
-drip watch --routes --showHost --host http://example.com/ --port 5464
+$ drip routes
 ```
 
 ## Command: completion
