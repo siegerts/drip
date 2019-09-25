@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var plumberEntryPoint string
-
 func init() {
 	rootCmd.AddCommand(routesCmd)
 	routesCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
@@ -25,15 +23,7 @@ var routesCmd = &cobra.Command{
 	Long:  `A quick way to visualize your Plumber application's routing structure`,
 	Run: func(cmd *cobra.Command, args []string) {
 		app := Application{
-			dir:           watchDir,
-			entryPoint:    entryPoint,
-			skipDirs:      subDirsToSkip,
-			displayRoutes: displayRoutes,
-			host:          hostValue,
-			port:          portValue,
-			absoluteHost:  absoluteHost,
-			routeFilter:   routeFilter,
-			pid:           0,
+			entryPoint: entryPoint,
 		}
 		app.RouteStructure()
 	},
@@ -41,11 +31,10 @@ var routesCmd = &cobra.Command{
 
 // RouteStructure outputs the parsed endpoints for a given entrypoint file
 // @TODO: need to deal with mounting and static file routers
+// gen route structure, maybe write a lexer in the future
 func (app *Application) RouteStructure() {
 
-	// gen route structure, maybe write a lexer in the future
-	plumb, _ := regexp.Compile(`(?i)(?P<comment>#*).*plumb\("(?P<plumber>[a-zA-Z0-9_]+\.[rR])"\)`)
-
+	plumberFile, _ := regexp.Compile(`(?i)(?P<comment>#*).*plumb\("(?P<plumber>[a-zA-Z0-9_]+\.[rR])"\)`)
 	routes, _ := regexp.Compile(`(?i)#\*\s*@(get|post|put|delete|head)\s/[a-zA-Z0-9\-_\/<>:]+`)
 	assets, _ := regexp.Compile(`(?i)#\*\s*@assets\s*[\.\/a-zA-Z0-9\_]+\s[\.\/a-zA-Z0-9\_]*`)
 
@@ -58,7 +47,7 @@ func (app *Application) RouteStructure() {
 		os.Exit(1)
 	}
 
-	entryMatches := plumb.FindAllStringSubmatch(string(dat), -1)
+	entryMatches := plumberFile.FindAllStringSubmatch(string(dat), -1)
 
 	if len(entryMatches) > 0 {
 		for _, entry := range entryMatches {

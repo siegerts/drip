@@ -25,25 +25,6 @@ var (
 	routeFilter   string
 )
 
-// Application is the definition of a Plumber app
-// for the purposes of development and testing
-type Application struct {
-	dir           string
-	entryPoint    string
-	skipDirs      []string
-	displayRoutes bool
-	host          string
-	port          int
-	absoluteHost  bool
-	routeFilter   string
-	pid           int
-	watcher       *fsnotify.Watcher
-}
-
-func (app *Application) path() string {
-	return filepath.Base(app.dir)
-}
-
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
 	watchCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
@@ -211,12 +192,13 @@ func (app *Application) Watch() {
 				fmt.Printf("[%s] error: %s\n", app.path(), err)
 
 			case <-done:
-				fmt.Printf("done.\n")
 				break
 			}
 
 		}
+
 	}()
 
 	<-done
+
 }
