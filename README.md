@@ -2,7 +2,7 @@
 
 `drip` is an easy-to-use development utility that will monitor your [Plumber](https://www.rplumber.io) applications for any changes in your source and automatically restart your server.
 
-> This project is under development and subject to change. All feedback and issues are welcome. 🍻
+> This project is **under development** and subject to change. All feedback and issues are welcome. 🍻
 
 The key features of drip are:
 
@@ -11,11 +11,17 @@ The key features of drip are:
 - Ignore specific directories
 - Generate and watch route maps
 
-# Requirements
+## Requirements
 
 drip utilizes [Rscript](https://support.rstudio.com/hc/en-us/articles/218012917-How-to-run-R-scripts-from-the-command-line) to run the Plumber application process. For that reason, R is required for the CLI to correctly execute.
 
-# Plumber Application Structure
+## Download and Install
+
+To install drip, find the appropriate package for your system and download it from the [download page](https://rdrip.netlify.com/). drip is packaged as a zip archive.
+
+After downloading drip, unzip the package. drip runs as a single binary named drip. Make sure that the drip binary is available on the PATH.
+
+## Plumber Application Structure
 
 drip requires that the Plumber application structure make use of an `entrypoint.R` that references a `plumber.R` app.
 

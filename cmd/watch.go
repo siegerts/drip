@@ -27,7 +27,7 @@ var (
 
 func init() {
 	watchCmd.Flags().StringVarP(&watchDir, "dir", "d", "", "Source directory to watch")
-	watchCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
+	watchCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.R", "Plumber application entrypoint file")
 	watchCmd.Flags().StringSliceVarP(&subDirsToSkip, "skip", "s", []string{"node_modules", ".Rproj.user"}, "A comma-separated list of directories to not watch.")
 	watchCmd.Flags().BoolVar(&displayRoutes, "routes", false, "Display route map alongside file watcher")
 	watchCmd.PersistentFlags().StringVar(&hostValue, "host", "127.0.0.1", "Display route endpoints with a specific host")
