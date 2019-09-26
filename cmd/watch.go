@@ -148,12 +148,12 @@ func (app *Application) Watch() {
 		plumbCmd.Stdout = os.Stdout
 		plumbCmd.Stderr = os.Stderr
 		err := plumbCmd.Start()
-		app.pid = plumbCmd.Process.Pid
 
 		if err != nil {
-			fmt.Println("Exiting... Error catching process id")
+			fmt.Println("Exiting... Make sure that R is installed. drip requires Rscript.")
 			os.Exit(1)
 		}
+		app.pid = plumbCmd.Process.Pid
 
 		fmt.Printf("[%s] running: %s \n", app.path(), strings.Join(plumbCmd.Args, " "))
 

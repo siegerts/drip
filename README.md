@@ -11,18 +11,22 @@ The key features of drip are:
 - Ignore specific directories
 - Generate and watch route maps
 
+# Requirements
+
+drip utilizes [Rscript](https://support.rstudio.com/hc/en-us/articles/218012917-How-to-run-R-scripts-from-the-command-line) to run the Plumber application process. For that reason, R is required for the CLI to correctly execute.
+
 # Plumber Application Structure
 
 drip requires that the Plumber application structure make use of an `entrypoint.R` that references a `plumber.R` app.
 
 ```r
-# entrypoint.r
+# entrypoint.R
 
 plumber::plumb("plumber.R")$run("0.0.0.0", port=8000)
 ```
 
 ```r
-# entrypoint.r
+# entrypoint.R
 
 library(plumber)
 
