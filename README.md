@@ -97,13 +97,13 @@ The list of available flags are:
 
 - `-d`, `--dir` (_string_) Source directory to watch
 - `-e`, `--entry` (_string_) Plumber application entrypoint file (default "`entrypoint.r`")
-- `-f`, `--filter` (_string_) Filter endpoints by prefix match
+- `-f`, `--filter` (_string_) Filter endpoints by substring match
 - `-h`, `--help` help for watch
 - `--host` (_string_) Display route endpoints with a specific host (default "127.0.0.1")
 - `--port` (_int_) Display route endpoints with a specific port (default 8000)
 - `--routes` Display route map alongside file watcher
 - `--showHost` Display absolute route endpoint in output
-- `-s`, `--skip` (_strings_) A comma-separated list of directories to not watch. (default [node_modules,.Rproj.user])
+- `-s`, `--skip` (_strings_) A comma-separated list of directories to not watch. (default [node_modules,.Rproj.user,.git])
 
 ### Examples
 
@@ -187,7 +187,7 @@ Usage: `drip completion [flags]`
 
 - `-h`, `--help` help for completion
 
-# Developing
+# Developing and Contribution
 
 If you want to work on drip, you'll first need [Go](https://golang.org/) installed on your machine.
 
