@@ -12,9 +12,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const functionType string = "function"
+const staticAssetsType string = "static assets"
+
 func init() {
 	rootCmd.AddCommand(routesCmd)
-	routesCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.r", "Plumber application entrypoint file")
+	routesCmd.Flags().StringVarP(&entryPoint, "entry", "e", "entrypoint.R", "Plumber application entrypoint file")
 }
 
 var routesCmd = &cobra.Command{
@@ -32,7 +35,7 @@ var routesCmd = &cobra.Command{
 // RouteStructure outputs the parsed endpoints for a given entrypoint file
 // @TODO: need to deal with mounting and static file routers
 // gen route structure, maybe write a lexer in the future
-func (app *Application) RouteStructure() {
+func (a *Application) RouteStructure() {
 
 	plumberFile, _ := regexp.Compile(`(?i)(?P<comment>#*).*plumb\("(?P<plumber>[a-zA-Z0-9_]+\.[rR])"\)`)
 	routes, _ := regexp.Compile(`(?i)#\*\s*@(get|post|put|delete|head)\s/[a-zA-Z0-9\-_\/<>:]+`)
@@ -41,14 +44,14 @@ func (app *Application) RouteStructure() {
 	// other components
 	programmaticRoutes, _ := regexp.Compile(`(?i)\$handle\(\"(get|post|put|delete|head)\",\s*\"\/(?P<route>[a-zA-Z0-9_]+)\"`)
 
-	dat, err := ioutil.ReadFile(app.entryPoint)
+	dat, err := ioutil.ReadFile(a.entryPoint)
 	if err != nil {
 		fmt.Println("Exiting... Error reading entrypoint file: ", err)
 		os.Exit(1)
 	}
 
 	entryMatches := plumberFile.FindAllStringSubmatch(string(dat), -1)
-
+	a.routes = nil
 	if len(entryMatches) > 0 {
 		for _, entry := range entryMatches {
 
@@ -63,7 +66,6 @@ func (app *Application) RouteStructure() {
 
 				table := tablewriter.NewWriter(os.Stdout)
 				table.SetHeader([]string{"Plumber Verb", "Endpoint", "Handler"})
-				data := [][]string{}
 
 				// route table
 				// refactor into function
@@ -79,22 +81,8 @@ func (app *Application) RouteStructure() {
 					}
 
 					// flag for absolute endpoint
-					// needs refactored into function
 					if printRoute {
-						if absoluteHost {
-							var endpoint string
-							if app.host != "" {
-
-								endpoint = strings.TrimRight(app.host, "/") + ":" + strconv.Itoa(app.port) + parts[2]
-							} else {
-								endpoint = parts[2]
-							}
-
-							data = append(data, []string{parts[1], endpoint, "function"})
-
-						} else {
-							data = append(data, []string{parts[1], parts[2], "function"})
-						}
+						a.formatRoutes(parts, functionType)
 					}
 
 				}
@@ -104,19 +92,7 @@ func (app *Application) RouteStructure() {
 				for _, match := range programmaticRouteMatches {
 					s := strings.TrimPrefix(match[0], "$handle(")
 					parts := strings.Split(strings.Replace(s, "\"", "", -1), ",")
-					if absoluteHost {
-						var endpoint string
-						if app.host != "" {
-							endpoint = strings.TrimRight(app.host, "/") + ":" + strconv.Itoa(app.port) + parts[2]
-						} else {
-							endpoint = parts[2]
-						}
-
-						data = append(data, []string{parts[1], endpoint, "function"})
-
-					} else {
-						data = append(data, []string{parts[1], parts[2], "function"})
-					}
+					a.formatRoutes(parts, functionType)
 
 				}
 
@@ -125,22 +101,9 @@ func (app *Application) RouteStructure() {
 				for _, match := range assetMatches {
 					s := strings.TrimPrefix(match[0], "#*")
 					parts := strings.Split(s, " ")
-
-					if absoluteHost {
-						var endpoint string
-						if app.host != "" {
-							endpoint = strings.TrimRight(app.host, "/") + ":" + strconv.Itoa(app.port) + strings.TrimLeft(parts[2], ".")
-						} else {
-							endpoint = parts[2]
-						}
-
-						data = append(data, []string{parts[1], endpoint, "static assets"})
-
-					} else {
-						data = append(data, []string{parts[1], parts[2], "static assets"})
-					}
+					a.formatRoutes(parts, staticAssetsType)
 				}
-				for _, v := range data {
+				for _, v := range a.routes {
 					table.Append(v)
 				}
 				fmt.Println()
@@ -148,6 +111,28 @@ func (app *Application) RouteStructure() {
 				fmt.Println()
 			}
 		}
+	}
+
+}
+
+func (a *Application) formatRoutes(parts []string, endpointType string) {
+	if absoluteHost {
+		var endpoint string
+		if a.host != "" {
+			switch endpointType {
+			case staticAssetsType:
+				endpoint = strings.TrimRight(a.host, "/") + ":" + strconv.Itoa(a.port) + strings.TrimLeft(parts[2], ".")
+			default:
+				endpoint = strings.TrimRight(a.host, "/") + ":" + strconv.Itoa(a.port) + parts[2]
+			}
+		} else {
+			endpoint = parts[2]
+		}
+
+		a.routes = append(a.routes, []string{parts[1], endpoint, endpointType})
+
+	} else {
+		a.routes = append(a.routes, []string{parts[1], parts[2], endpointType})
 	}
 
 }

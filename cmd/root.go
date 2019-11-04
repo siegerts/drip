@@ -16,6 +16,7 @@ type Application struct {
 	entryPoint    string
 	skipDirs      []string
 	displayRoutes bool
+	routes        [][]string
 	host          string
 	port          int
 	absoluteHost  bool
@@ -24,8 +25,8 @@ type Application struct {
 	watcher       *fsnotify.Watcher
 }
 
-func (app *Application) path() string {
-	return filepath.Base(app.dir)
+func (a *Application) path() string {
+	return filepath.Base(a.dir)
 }
 
 var rootCmd = &cobra.Command{

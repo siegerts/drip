@@ -7,7 +7,6 @@ import (
 )
 
 func init() {
-
 	rootCmd.AddCommand(completionCmd)
 }
 
