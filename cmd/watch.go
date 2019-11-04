@@ -65,10 +65,6 @@ var watchCmd = &cobra.Command{
 			// watch current
 			cwd, _ := os.Getwd()
 			app.dir = cwd
-			if _, err := os.Stat(app.dir); os.IsNotExist(err) {
-				fmt.Println("Exiting... Error accessing current directory")
-				os.Exit(1)
-			}
 			app.Watch()
 
 		}
@@ -76,98 +72,43 @@ var watchCmd = &cobra.Command{
 }
 
 // Watch is the default explicit run function
-func (app *Application) Watch() {
+func (a *Application) Watch() {
 
 	watcher, err := fsnotify.NewWatcher()
-	app.watcher = watcher
+	a.watcher = watcher
 	if err != nil {
 		fmt.Printf("error: %s \n", err)
 	}
-	defer app.watcher.Close()
+	defer a.watcher.Close()
 
-	err = filepath.Walk(app.dir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(a.dir, func(path string, info os.FileInfo, err error) error {
 		var skip bool
-		for _, subDir := range app.skipDirs {
+		for _, subDir := range a.skipDirs {
 			skip = info.IsDir() && info.Name() == subDir
 			if skip {
-				fmt.Printf("[%s] skipping directory: %+v \n", app.path(), info.Name())
+				fmt.Printf("[%s] skipping directory: %+v \n", a.path(), info.Name())
 				return filepath.SkipDir
 			}
 
 		}
 
 		if info.IsDir() {
-			return app.watcher.Add(path)
+			return a.watcher.Add(path)
 		}
 		return nil
 
 	})
 
 	if err != nil {
-		fmt.Printf("[%s] error traversing directory... \n", app.path())
+		fmt.Printf("[%s] error traversing directory... \n", a.path())
 	}
 
 	done := make(chan bool)
-
 	debounced := debounce.New(100 * time.Millisecond)
 
-	plumb := func() {
-
-		if app.pid != 0 {
-			p, err := os.FindProcess(app.pid)
-			if err != nil {
-				fmt.Println(err)
-			}
-			if runtime.GOOS == "windows" {
-				err = p.Signal(os.Kill)
-			} else {
-				err = p.Signal(os.Interrupt)
-			}
-
-		}
-
-		var plumber string
-		// refactor this into exists function
-		if app.dir != "" {
-			if _, err := os.Stat(fmt.Sprintf("%s/%s", app.dir, app.entryPoint)); os.IsNotExist(err) {
-				fmt.Println("Exiting... Entrypoint does not exist")
-				os.Exit(1)
-			}
-			plumber = fmt.Sprintf("%s/%s", app.dir, app.entryPoint)
-		} else {
-			if _, err := os.Stat(app.entryPoint); os.IsNotExist(err) {
-				fmt.Println("Exiting... Entrypoint does not exist")
-				os.Exit(1)
-			}
-			plumber = fmt.Sprintf("%s", app.entryPoint)
-		}
-
-		plumbCmd := exec.Command("Rscript", plumber)
-
-		// redirect child output
-		plumbCmd.Stdout = os.Stdout
-		plumbCmd.Stderr = os.Stderr
-		err := plumbCmd.Start()
-
-		if err != nil {
-			fmt.Println("Exiting... Make sure that R is installed. drip requires Rscript.")
-			os.Exit(1)
-		}
-		app.pid = plumbCmd.Process.Pid
-
-		fmt.Printf("[%s] running: %s \n", app.path(), strings.Join(plumbCmd.Args, " "))
-
-		if displayRoutes {
-			fmt.Printf("[%s] routing... \n", app.path())
-			app.RouteStructure()
-		}
-		fmt.Printf("[%s] watching... \n", app.path())
-
-	}
-
 	// initial watch
-	fmt.Printf("[%s] plumbing... \n", app.path())
-	plumb()
+	fmt.Printf("[%s] plumbing... \n", a.path())
+	a.plumb()
 
 	go func() {
 		for {
@@ -177,19 +118,19 @@ func (app *Application) Watch() {
 					continue
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					fmt.Printf("[%s] modified file: %s\n", app.path(), event.Name)
+					fmt.Printf("[%s] modified file: %s\n", a.path(), event.Name)
 				}
 				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					fmt.Printf("[%s] renamed file: %s\n", app.path(), event.Name)
+					fmt.Printf("[%s] renamed file: %s\n", a.path(), event.Name)
 				}
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					fmt.Printf("[%s] removed file: %s\n", app.path(), event.Name)
+					fmt.Printf("[%s] removed file: %s\n", a.path(), event.Name)
 				}
-				fmt.Printf("[%s] plumbing... \n", app.path())
-				debounced(plumb)
+				fmt.Printf("[%s] plumbing... \n", a.path())
+				debounced(a.plumb)
 
 			case err := <-watcher.Errors:
-				fmt.Printf("[%s] error: %s\n", app.path(), err)
+				fmt.Printf("[%s] error: %s\n", a.path(), err)
 
 			case <-done:
 				break
@@ -201,4 +142,78 @@ func (app *Application) Watch() {
 
 	<-done
 
+}
+
+func (a *Application) plumb() {
+
+	if a.pid != 0 {
+		p, err := os.FindProcess(a.pid)
+		if err != nil {
+			fmt.Println(err) // fatal?
+		}
+
+		if runtime.GOOS == "windows" {
+			err = p.Signal(os.Kill)
+		} else {
+			err = p.Signal(os.Interrupt)
+		}
+
+	}
+
+	cmd, err := a.determineEntryPoint()
+	if err != nil {
+		fmt.Println("Exiting... Entrypoint does not exist")
+		os.Exit(1)
+	}
+
+	plumbCmd := exec.Command("Rscript", cmd)
+
+	// redirect child output
+	plumbCmd.Stdout = os.Stdout
+	plumbCmd.Stderr = os.Stderr
+	err = plumbCmd.Start()
+
+	if err != nil {
+		fmt.Println("Exiting... Make sure that R is installed. drip requires Rscript.")
+		os.Exit(1)
+	}
+	a.pid = plumbCmd.Process.Pid
+
+	fmt.Printf("[%s] running: %s \n", a.path(), strings.Join(plumbCmd.Args, " "))
+
+	if displayRoutes {
+		fmt.Printf("[%s] routing... \n", a.path())
+		a.RouteStructure()
+	}
+	fmt.Printf("[%s] watching... \n", a.path())
+
+}
+
+func (a *Application) determineEntryPoint() (string, error) {
+
+	if a.dir != "" {
+		file := fmt.Sprintf("%s/%s", a.dir, a.entryPoint)
+		err := fileExists(file)
+
+		if err != nil {
+			return "", err
+		}
+
+		return file, nil
+	}
+
+	err := fileExists(a.entryPoint)
+	if err != nil {
+		return "", err
+	}
+
+	return a.entryPoint, nil
+
+}
+
+func fileExists(file string) error {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
