@@ -17,7 +17,7 @@ drip utilizes [Rscript](https://support.rstudio.com/hc/en-us/articles/218012917-
 
 ## Download and Install
 
-To install drip, find the appropriate package for your system and download it from the [download page](https://rdrip.netlify.com/). drip is packaged as a zip archive.
+To install drip, find the appropriate package for your system and download it from the [download page](https://rdrip.netlify.app/). drip is packaged as a zip archive.
 
 After downloading drip, unzip the package. drip runs as a single binary named drip. Make sure that the drip binary is available on the PATH.
 
